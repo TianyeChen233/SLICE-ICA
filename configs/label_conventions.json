@@ -1,0 +1,11 @@
+{
+  "logistic_and_llm_labeling": {"signal": 1, "noise": 0},
+  "downstream_classification_and_reporting": {"noise": 1, "signal": 0},
+  "selective_signal_probability_interval": [0.35, 0.65],
+  "labeling_signal_probability_threshold": 0.39,
+  "confidence": "2 * abs(a_i - 0.5)",
+  "confidence_cutoff": 0.2,
+  "non_override_fusion": "0.8 * logistic_signal_probability + 0.2 * llm_signal_probability",
+  "override_fusion": "llm_signal_probability",
+  "warning": "Class conventions are reversed during export. Confidence is not the raw probability."
+}

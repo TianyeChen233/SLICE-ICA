@@ -1,0 +1,15 @@
+# Observed on the research server on 2026-10-23.
+# Package snapshot; use requirements.txt for installation.
+numpy==2.4.6
+scipy==1.17.1
+pandas==3.0.2
+scikit-learn==1.8.0
+nibabel==5.2.1
+torch==2.7.1+cu118
+torchvision==0.22.1+cu118
+xgboost==3.2.0
+matplotlib==3.10.9
+Pillow==12.1.1
+tqdm==4.67.3
+einops==0.8.2
+# scikit-image is an optional image-processing dependency.

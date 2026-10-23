@@ -1,0 +1,19 @@
+{
+  "synthetic": true,
+  "purpose": "Structure demonstration only; values and feature names are artificial, not participant observations or the full FIX descriptor schema.",
+  "label_convention": "signal=1, noise=0",
+  "reference_examples": [
+    {"features": {"demo_feature_A": 0.8, "demo_feature_B": 0.2}, "label": 1},
+    {"features": {"demo_feature_A": 0.2, "demo_feature_B": 0.8}, "label": 0}
+  ],
+  "target": {
+    "ic": 2,
+    "ml_prob_signal": 0.51,
+    "features": {"demo_feature_A": 0.35, "demo_feature_B": 0.65}
+  },
+  "illustrative_output_not_an_api_observation": {
+    "p_signal": 0.3,
+    "override_ml": true,
+    "reason": "Synthetic response illustrating the output schema."
+  }
+}

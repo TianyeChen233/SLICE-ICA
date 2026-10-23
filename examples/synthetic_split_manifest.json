@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "identity_scope": "global_participant",
+  "train_subjects": ["FIX:demo_a", "FIX:demo_b", "HCP:demo_c"],
+  "val_subjects": ["FIX:demo_validation"],
+  "test_subjects": ["FIX:demo_test"],
+  "external_subjects": ["MSC:demo_external"],
+  "participant_map": {}
+}

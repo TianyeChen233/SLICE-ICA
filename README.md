@@ -1,0 +1,81 @@
+# SLICE-ICA
+
+Research implementation for **SLICE-ICA: Selective LLM-Informed Component Evaluation for Independent Component Analysis Quality Control in Resting-State Functional MRI Archive**, by Chen Tianye and Wan Zhiyu.
+
+The workflow combines FIX descriptors, logistic scoring, FIX-grounded LLM labeling,
+confidence-weighted spatial/temporal learning, and XGBoost fusion. Batch labeling
+reviews all ICs; selective labeling reviews the signal-probability interval
+[0.35, 0.65]. The trained classifier runs locally without further LLM calls.
+
+## Contents
+
+| Directory | Contents |
+|---|---|
+| `labeling/` | Feature alignment, logistic fitting, FIX demonstrations, batch/selective labeling, and label provenance |
+| `classification/` | Encoders, trusted PKL conversion, participant-group OOF training, ablations, repeated runs, and frozen inference |
+| `analysis/` | Group audits, participant-cluster sensitivity utilities, temporal QC, and functional connectivity |
+| `annotation/` | Browser IC labeler with FIX-compatible noise-index export |
+| `configs/` | Hyperparameters, label conventions, and environment information |
+| `data/` | Manuscript-reported classification and group-level aggregate results |
+| `examples/` | Explicitly synthetic format examples |
+| `tools/` | Fixed-threshold evaluation, metric aggregation, and release checks |
+| `docs/` | Workflow, source-data access, bibliography, and file checksums |
+
+## Installation
+
+Use Python 3.10 or newer. Install PyTorch/torchvision for your CPU/CUDA platform,
+then:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+FSL/MELODIC and FIX are separate prerequisites for preprocessing and descriptor
+extraction. Source datasets, participant-level records, credentials, and trained
+checkpoints are not bundled.
+
+## Workflow
+
+Follow [REPRODUCING.md](docs/REPRODUCING.md). Supply authorized local inputs,
+globally unique participant identifiers, a frozen split manifest, and your own
+service configuration. The pipeline checks split overlap, duplicated inputs,
+training-only demonstration sources, and pseudo-label provenance. Model selection
+and thresholds use validation only; test data are handled by frozen inference.
+
+## Offline checks
+
+```bash
+python tools/release_checks.py
+python -m unittest discover -s tests -v
+python tools/summarize_runs.py --input examples/synthetic_repeated_metrics.csv
+```
+
+Tests use synthetic values and mocked model/API callbacks. They do not train on
+research data or call a live LLM.
+
+## Annotation example
+
+```bash
+python tools/make_synthetic_ic_example.py --output outputs/synthetic_ica
+python annotation/ic_labeler_app.py --ica-root outputs/synthetic_ica --label-root outputs/synthetic_labels --host 127.0.0.1 --port 8765
+```
+
+Open `http://127.0.0.1:8765/`. These are artificial ICs, not participant images.
+Keep the service bound to localhost or use a secure tunnel.
+
+## Data, results, and citation
+
+[data/README.md](data/README.md) describes the supplied manuscript-reported
+aggregates. Component-ablation entries are arithmetic means of per-run metrics;
+the separate five-seed series has its own mean and sample SD. Code-generated run
+outputs and supplied aggregate summaries are separate artifacts.
+
+Obtain HCP, MSC, and FIX resources from their providers following
+[DATA_ACCESS.md](docs/DATA_ACCESS.md). References are in
+[references.bib](docs/references.bib). A manuscript DOI is not assigned here.
+
+No repository-wide software license has been assigned; see [RIGHTS.md](RIGHTS.md).
+Upstream software and dataset terms remain applicable.
+
+Contact: Chen Tianye (`chenty12023@shanghaitech.edu.cn`);
+corresponding author: Wan Zhiyu (`wanzhy@shanghaitech.edu.cn`).

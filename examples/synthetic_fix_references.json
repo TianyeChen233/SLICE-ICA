@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "source_description": "Artificial schema example, NOT an actual public FIX record or experimental input",
+  "feature_names": ["synthetic_descriptor_a", "synthetic_descriptor_b"],
+  "references": [
+    {"participant": "FIX:demo_a", "session": "demo", "ic_index": 1, "label_signal": 1, "feature_values_in_order": [0.1, 0.2]},
+    {"participant": "FIX:demo_b", "session": "demo", "ic_index": 2, "label_signal": 0, "feature_values_in_order": [0.8, 0.9]}
+  ]
+}

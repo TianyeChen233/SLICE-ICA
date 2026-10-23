@@ -1,0 +1,48 @@
+{
+  "dataset": "Midnight Scan Club (MSC), OpenNeuro ds000224",
+  "dataset_description_paragraph": "The Midnight Scan Club (MSC) dataset is a densely sampled, publicly available human MRI/fMRI resource comprising ten healthy adults, with five hours of resting-state fMRI, six hours of task fMRI, repeated structural MRI acquisitions, and associated neuropsychological measures per participant. Its repeated within-person sampling makes it a useful external cohort for testing whether an independent-component (IC) classifier transfers beyond the Human Connectome Project (HCP) acquisition setting. The MSC resource is available through OpenNeuro (accession ds000224; dataset DOI 10.18112/openneuro.ds000224.v1.0.1) and should be cited as: Gordon EM, Laumann TO, Gilmore AW, Newbold DJ, Greene DJ, Berg JJ, Ortega M, Hoyt-Drazen C, Gratton C, Sun H, Hampton JM, Coalson RS, Nguyen AL, McDermott KB, Shimony JS, Snyder AZ, Schlaggar BL, Petersen SE, Nelson SM, Dosenbach NUF. Precision functional mapping of individual human brains. Neuron. 2017;95(4):791-807.e7. doi:10.1016/j.neuron.2017.07.011.",
+  "citation": {
+    "in_text": "(Gordon et al., 2017)",
+    "full": "Gordon EM, Laumann TO, Gilmore AW, Newbold DJ, Greene DJ, Berg JJ, Ortega M, Hoyt-Drazen C, Gratton C, Sun H, Hampton JM, Coalson RS, Nguyen AL, McDermott KB, Shimony JS, Snyder AZ, Schlaggar BL, Petersen SE, Nelson SM, Dosenbach NUF. Precision functional mapping of individual human brains. Neuron. 2017;95(4):791-807.e7. doi:10.1016/j.neuron.2017.07.011.",
+    "dataset_accession": "OpenNeuro ds000224",
+    "dataset_doi": "10.18112/openneuro.ds000224.v1.0.1"
+  },
+  "validation_scope": {
+    "msc_unit_count": 10,
+    "msc_unit_label": "MSC datasets/subjects MSC01-MSC10",
+    "msc_subjects": [
+      "MSC01",
+      "MSC02",
+      "MSC03",
+      "MSC04",
+      "MSC05",
+      "MSC06",
+      "MSC07",
+      "MSC08",
+      "MSC09",
+      "MSC10"
+    ],
+    "msc_ic_count": 1801,
+    "original_hcp_held_out_dataset_count": 2,
+    "pooled_result_scope": "All 10 MSC datasets/subjects plus the 2 original HCP held-out datasets",
+    "interpretation": "The reported metrics are pooled gold-standard comparison results for the combined MSC and HCP held-out validation cohorts; they are not MSC-only performance estimates. The 1,801 IC count refers to the MSC portion only, and the authoritative result did not provide a combined IC total."
+  },
+  "gold_standard_comparison": true,
+  "source_note": "User-provided authoritative results computed on another device; retained without re-derivation from the current server files.",
+  "metrics": {
+    "scope": "Pooled MSC01-MSC10 plus 2 original HCP held-out datasets",
+    "hybrid": {
+      "f1": 0.928,
+      "accuracy": 0.916,
+      "precision": 0.922,
+      "recall": null
+    },
+    "true_label_all": {
+      "f1": 0.854,
+      "accuracy": 0.828,
+      "precision": 0.84,
+      "recall": null
+    }
+  },
+  "metrics_note": "F1, accuracy, and precision are the corrected user-provided values. Recall was not supplied in this authoritative result and is therefore stored as null."
+}

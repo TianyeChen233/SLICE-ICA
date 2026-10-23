@@ -1,0 +1,3 @@
+configuration,seed,f1,accuracy,precision,recall
+synthetic_demo,42,0.8,0.8,0.8,0.8
+synthetic_demo,43,0.9,0.9,0.9,0.9

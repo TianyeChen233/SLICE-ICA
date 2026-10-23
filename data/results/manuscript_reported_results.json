@@ -1,0 +1,51 @@
+{
+  "snapshot_date": "2026-10-23",
+  "positive_class": "noise",
+  "primary_results": {
+    "internal_hybrid": {"f1": 0.985, "accuracy": 0.974, "precision": 0.986, "threshold": 0.240},
+    "internal_expert_only": {"f1": 0.991, "accuracy": 0.984, "precision": 0.987, "threshold": 0.280},
+    "internal_FIX": {"f1": 0.911, "accuracy": 0.896, "precision": 0.903},
+    "pooled_external_hybrid": {"f1": 0.928, "accuracy": 0.916, "precision": 0.922},
+    "pooled_external_expert_only": {"f1": 0.854, "accuracy": 0.828, "precision": 0.840}
+  },
+  "component_ablations": {
+    "aggregation": "Arithmetic mean of each run's corresponding metric across repeated random-seed experiments",
+    "aggregation_author_confirmed": "2026-10-23",
+    "repeat_count": null,
+    "per_configuration_standard_deviations": null,
+    "rows": [
+      {"configuration": "Full fusion", "mean_f1": 0.985, "mean_accuracy": 0.973, "mean_precision": 0.984},
+      {"configuration": "Temporal-only", "mean_f1": 0.983, "mean_accuracy": 0.984, "mean_precision": 0.981},
+      {"configuration": "FIX-only", "mean_f1": 0.982, "mean_accuracy": 0.982, "mean_precision": 0.980},
+      {"configuration": "Spatial-only", "mean_f1": 0.981, "mean_accuracy": 0.969, "mean_precision": 0.979},
+      {"configuration": "Deep encoders, no XGBoost stack", "mean_f1": 0.979, "mean_accuracy": 0.973, "mean_precision": 0.975},
+      {"configuration": "Stacked fusion without FIX features", "mean_f1": 0.975, "mean_accuracy": 0.965, "mean_precision": 0.971}
+    ]
+  },
+  "backbone_comparison": {
+    "note": "Reported backbone entries; do not assume the component-ablation aggregation applies to this separate table.",
+    "rows": [
+      {"spatial": "ConvNeXt-V2", "temporal": "BiLSTM", "f1": 0.991, "accuracy": 0.985, "precision": 0.989, "recall": 0.994},
+      {"spatial": "ConvNeXt-V2", "temporal": "GRU", "f1": 0.987, "accuracy": 0.977, "precision": 0.982, "recall": 0.992},
+      {"spatial": "ConvNeXt-V2", "temporal": "Transformer", "f1": 0.987, "accuracy": 0.978, "precision": 0.982, "recall": 0.993},
+      {"spatial": "ResNet-18", "temporal": "BiLSTM", "f1": 0.984, "accuracy": 0.973, "precision": 0.983, "recall": 0.986},
+      {"spatial": "ResNet-18", "temporal": "GRU", "f1": 0.979, "accuracy": 0.964, "precision": 0.992, "recall": 0.967},
+      {"spatial": "ResNet-18", "temporal": "Transformer", "f1": 0.988, "accuracy": 0.978, "precision": 0.983, "recall": 0.992},
+      {"spatial": "Swin-T", "temporal": "BiLSTM", "f1": 0.987, "accuracy": 0.977, "precision": 0.982, "recall": 0.992},
+      {"spatial": "Swin-T", "temporal": "GRU", "f1": 0.990, "accuracy": 0.982, "precision": 0.985, "recall": 0.995},
+      {"spatial": "Swin-T", "temporal": "Transformer", "f1": 0.988, "accuracy": 0.980, "precision": 0.981, "recall": 0.997},
+      {"spatial": "EfficientNet-B0", "temporal": "BiLSTM", "f1": 0.984, "accuracy": 0.972, "precision": 0.983, "recall": 0.985},
+      {"spatial": "EfficientNet-B0", "temporal": "GRU", "f1": 0.981, "accuracy": 0.967, "precision": 0.988, "recall": 0.974},
+      {"spatial": "EfficientNet-B0", "temporal": "Transformer", "f1": 0.982, "accuracy": 0.969, "precision": 0.980, "recall": 0.984},
+      {"spatial": "3D CNN", "temporal": "BiLSTM", "f1": 0.986, "accuracy": 0.976, "precision": 0.974, "recall": 0.999},
+      {"spatial": "3D CNN", "temporal": "GRU", "f1": 0.956, "accuracy": 0.926, "precision": 0.994, "recall": 0.921},
+      {"spatial": "3D CNN", "temporal": "Transformer", "f1": 0.984, "accuracy": 0.972, "precision": 0.972, "recall": 0.997}
+    ]
+  },
+  "separate_hybrid_seed_repeats": {
+    "seeds": [42, 43, 44, 45, 46],
+    "f1": [0.988, 0.979, 0.988, 0.987, 0.983],
+    "mean_f1_rounded": 0.985,
+    "sample_sd_rounded": 0.004
+  }
+}

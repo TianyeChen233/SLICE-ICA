@@ -1,0 +1,13 @@
+numpy>=2.0,<3
+scipy>=1.14,<2
+pandas>=2.0,<4
+scikit-learn>=1.5,<2
+scikit-image>=0.23,<1
+nibabel>=5.2,<6
+torch==2.7.1
+torchvision==0.22.1
+xgboost>=2.0,<4
+matplotlib>=3.8,<4
+Pillow>=10,<13
+tqdm>=4.66,<5
+einops>=0.8,<1
