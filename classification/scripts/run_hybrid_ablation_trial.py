@@ -65,7 +65,7 @@ sys_path = str(PROJECT_ROOT)
 if sys_path not in sys.path:
     sys.path.insert(0, sys_path)
 from hcp_architecture import build_hcp_classifier, resolve_deep_arch_tags
-from protocol import PROTOCOL_VERSION, cross_fit, validate_manifest, validate_records
+from protocol import PROTOCOL_VERSION, partition_cross_fit, validate_manifest, validate_records
 
 DEFAULT_SEED = 42  # overridable via HCP_SEED in main()
 IMAGE_SIZE = (64, 64)
@@ -316,7 +316,13 @@ def build_weighted_pseudo(pseudo_records, params):
 
 
 def fit_deep_model(
-    train_records, validation_records, save_ckpt_path, *, image_backbone, temporal_backbone
+    train_records,
+    validation_records,
+    save_ckpt_path,
+    *,
+    image_backbone,
+    temporal_backbone,
+    stack_partition,
 ):
     """Train on training records only; select checkpoints on validation only."""
     import copy
@@ -386,6 +392,13 @@ def fit_deep_model(
         "model": model.state_dict(),
         "protocol_version": PROTOCOL_VERSION,
         "selection_partition": "validation" if validation_records else "fixed_epochs",
+        "stack_partition": stack_partition,
+        "training_participants": sorted(
+            {r.get("participant") or r["subject"] for r in train_records}
+        ),
+        "selection_participants": sorted(
+            {r.get("participant") or r["subject"] for r in validation_records}
+        ),
         "selected_epoch": selected_epoch,
         "ablation": ABLATION,
         "image_backbone": image_backbone,
@@ -429,7 +442,7 @@ def safe_stack_inputs(
     image_backbone,
     temporal_backbone,
 ):
-    """Group OOF training features; one frozen final encoder for validation/test."""
+    """OOF training features; separate train-only encoders for validation/test."""
 
     def fit(records, selection, tag):
         return fit_deep_model(
@@ -438,9 +451,10 @@ def safe_stack_inputs(
             MODEL_DIR / f"{ABLATION}_{tag}.pth",
             image_backbone=image_backbone,
             temporal_backbone=temporal_backbone,
+            stack_partition=tag,
         )
 
-    blocks, final_model = cross_fit(
+    blocks, partition_models = partition_cross_fit(
         train_records,
         pseudo_records,
         validation_records,
@@ -454,9 +468,9 @@ def safe_stack_inputs(
     f_train = np.empty((n, 185), dtype=np.float32)
     for indices, (p, y, f) in blocks:
         p_train[indices], y_train[indices], f_train[indices] = p, y, f
-    validation_output = collect_frozen_probs(final_model, validation_records)
+    validation_output = collect_frozen_probs(partition_models["validation"], validation_records)
     # Test labels are read for final reporting only, after every fit is complete.
-    test_output = collect_frozen_probs(final_model, test_records)
+    test_output = collect_frozen_probs(partition_models["test"], test_records)
     return (p_train, y_train, f_train), validation_output, test_output
 
 
@@ -631,7 +645,8 @@ def run_trial_main(params: Dict, true_records: List, pseudo_records: List) -> Di
         image_backbone=ib_env,
         temporal_backbone=tb_env,
     )
-    ckpt_final = MODEL_DIR / f"{ABLATION}_final.pth"
+    ckpt_validation = MODEL_DIR / f"{ABLATION}_validation.pth"
+    ckpt_test = MODEL_DIR / f"{ABLATION}_test.pth"
 
     np.save(STACK_DIR / "p_train.npy", p_tr)
     np.save(STACK_DIR / "y_train.npy", y_tr)
@@ -660,8 +675,10 @@ def run_trial_main(params: Dict, true_records: List, pseudo_records: List) -> Di
             "ablation": ABLATION,
             "saved_at": datetime.now().isoformat(timespec="seconds"),
             "deep_checkpoints": {
-                "frozen_final": str(ckpt_final),
+                "validation": str(ckpt_validation),
+                "frozen_test": str(ckpt_test),
             },
+            "stack_encoder_protocol": "participant_oof_train_separate_validation_test",
             "xgb_model": None,
             "threshold_from_val": float(thr),
             "params": params,
@@ -697,6 +714,7 @@ def run_trial_main(params: Dict, true_records: List, pseudo_records: List) -> Di
     stack_meta = {
         "protocol_version": PROTOCOL_VERSION,
         "stack_training_features": "participant_group_out_of_fold",
+        "stack_encoder_protocol": "participant_oof_train_separate_validation_test",
         "stack_mode": "p+logit+manual" if ABLATION == "full" else ABLATION,
         "xgb_input_dim": int(Xtr.shape[1]),
     }
@@ -739,7 +757,8 @@ def run_trial_main(params: Dict, true_records: List, pseudo_records: List) -> Di
         "ablation": ABLATION,
         "saved_at": datetime.now().isoformat(timespec="seconds"),
         "deep_checkpoints": {
-            "frozen_final": str(ckpt_final),
+            "validation": str(ckpt_validation),
+            "frozen_test": str(ckpt_test),
         },
         "xgb_model": str(xgb_path),
         "threshold_from_val": float(thr),
@@ -801,6 +820,7 @@ def main():
     meta = {
         "protocol_version": PROTOCOL_VERSION,
         "stack_training_features": "participant_group_out_of_fold",
+        "stack_encoder_protocol": "participant_oof_train_separate_validation_test",
         "ablation": ABLATION,
         "seed": seed,
         "exp_dir": str(EXP_DIR),

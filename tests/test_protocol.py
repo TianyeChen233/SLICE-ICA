@@ -12,7 +12,13 @@ from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from classification.protocol import cross_fit, group_folds, validate_manifest, validate_records
+from classification.protocol import (
+    cross_fit,
+    group_folds,
+    partition_cross_fit,
+    validate_manifest,
+    validate_records,
+)
 from labeling.grounded_labeler import call_api, logistic_probability
 from labeling.reference_context import ReferenceContext, fuse_probability, validate_response
 
@@ -304,6 +310,123 @@ class SplitTests(unittest.TestCase):
                 )
             )
         )
+
+    def test_partition_specific_models_fit_training_only(self):
+        calls = []
+
+        def fit(pool, selection, tag):
+            calls.append((copy.deepcopy(pool), copy.deepcopy(selection), tag))
+            return {"tag": tag}
+
+        blocks, models = partition_cross_fit(
+            records()[:3],
+            [],
+            [records()[3]],
+            fit=fit,
+            infer=lambda model, held: [r["subject"] for r in held],
+            n_folds=3,
+        )
+        self.assertEqual(
+            [call[2] for call in calls], ["oof_0", "oof_1", "oof_2", "validation", "test"]
+        )
+        self.assertIsNot(models["validation"], models["test"])
+        self.assertEqual(sorted(i for indices, _ in blocks for i in indices), [0, 1, 2])
+        for pool, selection, tag in calls:
+            self.assertTrue(all(r["bucket"] == "train" for r in pool))
+            self.assertEqual(selection, [] if tag.startswith("oof_") else [records()[3]])
+        self.assertNotIn("person_4", repr(calls))
+
+    def test_partition_specific_refuses_heldout_training_or_selection(self):
+        for pool, selection in [
+            (records()[:3] + [records()[4]], [records()[3]]),
+            (records()[:3], [records()[4]]),
+            (records()[:3], [{**records()[0], "bucket": "val"}]),
+        ]:
+            with self.assertRaises(ValueError):
+                partition_cross_fit(pool, [], selection, fit=None, infer=None, n_folds=3)
+
+    def test_pseudo_only_training_people_allowed_without_expert_target_labels(self):
+        pseudo = {
+            "participant": "HCP:auxiliary",
+            "subject": "auxiliary",
+            "bucket": "train",
+            "upstream_training_participants": ["person_0"],
+        }
+        calls = []
+        partition_cross_fit(
+            records()[:3],
+            [pseudo],
+            [records()[3]],
+            fit=lambda pool, selection, tag: calls.append((pool, tag)),
+            infer=lambda model, held: None,
+            n_folds=3,
+        )
+        self.assertIn(pseudo, calls[-1][0])
+        self.assertIn(pseudo, calls[-2][0])
+        for pool, tag in calls[:-2]:
+            if not any(r.get("subject") == "person_0" for r in pool):
+                self.assertNotIn(pseudo, pool)
+
+    def test_partition_specific_refuses_upstream_heldout_reference(self):
+        pseudo = {
+            "subject": "auxiliary",
+            "bucket": "train",
+            "upstream_training_participants": ["person_4"],
+        }
+        with self.assertRaises(ValueError):
+            partition_cross_fit(
+                records()[:3], [pseudo], [records()[3]], fit=None, infer=None, n_folds=3
+            )
+
+    def test_training_runner_wires_distinct_frozen_partition_models(self):
+        import numpy as np
+        import os
+
+        tree = ast.parse((ROOT / "classification/scripts/run_hybrid_ablation_trial.py").read_text())
+        function = next(
+            n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "safe_stack_inputs"
+        )
+        calls = []
+
+        def fake_fit(pool, selection, path, **settings):
+            calls.append((pool, selection, settings["stack_partition"]))
+            return settings["stack_partition"]
+
+        def fake_infer(tag, target):
+            score = 0.25 if tag == "validation" else 0.75
+            return (
+                np.full(len(target), score),
+                np.ones(len(target), dtype=int),
+                np.ones((len(target), 185)),
+            )
+
+        namespace = {
+            "np": np,
+            "os": os,
+            "MODEL_DIR": Path("synthetic_models"),
+            "ABLATION": "full",
+            "DEFAULT_SEED": 42,
+            "partition_cross_fit": partition_cross_fit,
+            "fit_deep_model": fake_fit,
+            "collect_frozen_probs": fake_infer,
+        }
+        exec(
+            compile(ast.Module(body=[function], type_ignores=[]), "synthetic_runner", "exec"),
+            namespace,
+        )
+        with patch.dict(os.environ, {"HCP_OOF_FOLDS": "3", "HCP_SEED": "42"}):
+            train, validation, test = namespace["safe_stack_inputs"](
+                records()[:3],
+                [],
+                [records()[3]],
+                [records()[4]],
+                image_backbone="mock_spatial",
+                temporal_backbone="mock_temporal",
+            )
+        self.assertEqual(train[2].shape, (3, 185))
+        self.assertEqual(validation[0].tolist(), [0.25])
+        self.assertEqual(test[0].tolist(), [0.75])
+        self.assertNotIn("person_4", repr(calls))
 
 
 if __name__ == "__main__":

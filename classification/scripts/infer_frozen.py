@@ -57,13 +57,28 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = None
     if artifact.get("deep_checkpoints"):
-        checkpoint = Path(artifact["deep_checkpoints"]["frozen_final"])
+        if (
+            artifact.get("stack_encoder_protocol")
+            != "participant_oof_train_separate_validation_test"
+        ):
+            raise ValueError("Missing partition-specific encoder protocol")
+        checkpoint = Path(artifact["deep_checkpoints"]["frozen_test"])
         payload = torch.load(checkpoint, map_location="cpu", weights_only=True)
         if (
             payload.get("protocol_version") != PROTOCOL_VERSION
             or payload.get("selection_partition") != "validation"
+            or payload.get("stack_partition") != "test"
         ):
-            raise ValueError("Not a frozen final validation-selected checkpoint")
+            raise ValueError("Not a frozen test/external encoder selected using validation")
+        if (
+            not payload.get("training_participants")
+            or not set(payload["training_participants"]) <= partitions["train"]
+            or not payload.get("selection_participants")
+            or not set(payload["selection_participants"]) <= partitions["val"]
+        ):
+            raise ValueError(
+                "Checkpoint provenance does not match approved training/validation participants"
+            )
         model = build_hcp_classifier(payload["image_backbone"], payload["temporal_backbone"])
         model.load_state_dict(payload["model"])
         model.to(device).eval()

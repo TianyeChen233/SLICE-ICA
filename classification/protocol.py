@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from collections.abc import Mapping, Sequence
 
-PROTOCOL_VERSION = "2026-10-23-safe-v1"
+PROTOCOL_VERSION = "2026-10-24-partition-v1"
 
 
 def validate_manifest(manifest: Mapping) -> dict[str, set[str]]:
@@ -94,7 +94,17 @@ def group_folds(records: Sequence[dict], n_folds: int, seed: int):
         yield train_idx, held_idx
 
 
-def cross_fit(expert_train, pseudo_train, validation, *, fit, infer, n_folds=5, seed=42):
+def cross_fit(
+    expert_train,
+    pseudo_train,
+    validation,
+    *,
+    fit,
+    infer,
+    n_folds=5,
+    seed=42,
+    final_tag="final",
+):
     """Callback orchestration: no test argument can reach fit/model selection.
 
     Each OOF fit uses fixed, predeclared epochs (empty selection set). A final
@@ -109,11 +119,59 @@ def cross_fit(expert_train, pseudo_train, validation, *, fit, infer, n_folds=5, 
             upstream = record.get("upstream_training_participants")
             if not isinstance(upstream, list) or not upstream:
                 raise ValueError("Pseudo-label provenance is required for nested OOF isolation")
-            if record.get("participant", record["subject"]) not in held_people and not (
+            if (record.get("participant") or record["subject"]) not in held_people and not (
                 set(upstream) & held_people
             ):
                 pool.append(record)
         model = fit(pool, [], f"oof_{fold}")
         blocks.append((held_idx, infer(model, held)))
-    final = fit([*expert_train, *pseudo_train], validation, "final")
+    final = fit([*expert_train, *pseudo_train], validation, final_tag)
     return blocks, final
+
+
+def partition_cross_fit(
+    expert_train,
+    pseudo_train,
+    validation,
+    *,
+    fit,
+    infer,
+    n_folds=5,
+    seed=42,
+):
+    """Generate train OOF features and separately fitted validation/test encoders.
+
+    Both partition-specific encoders fit the same permitted training pool and
+    use validation only for checkpoint selection. There is intentionally no
+    test argument: neither test inputs nor test labels can reach a fit callback.
+    The training stack remains OOF, rather than in-sample training predictions.
+    """
+
+    def person(record):
+        return record.get("participant") or record["subject"]
+
+    training_people = {person(r) for r in [*expert_train, *pseudo_train]}
+    reference_people = {person(r) for r in expert_train}
+    selection_people = {person(r) for r in validation}
+    if not training_people or not selection_people or training_people & selection_people:
+        raise ValueError("Nonempty, participant-disjoint training/validation sets required")
+    if any(r.get("bucket", "train") != "train" for r in [*expert_train, *pseudo_train]):
+        raise ValueError("Only training records may enter encoder fitting")
+    if any(r.get("bucket", "val") != "val" for r in validation):
+        raise ValueError("Checkpoint selection accepts validation records only")
+    for record in pseudo_train:
+        upstream = record.get("upstream_training_participants")
+        if not isinstance(upstream, list) or not upstream or not set(upstream) <= reference_people:
+            raise ValueError("Training-only labeler/reference provenance is required")
+    blocks, validation_model = cross_fit(
+        expert_train,
+        pseudo_train,
+        validation,
+        fit=fit,
+        infer=infer,
+        n_folds=n_folds,
+        seed=seed,
+        final_tag="validation",
+    )
+    test_model = fit([*expert_train, *pseudo_train], validation, "test")
+    return blocks, {"validation": validation_model, "test": test_model}
